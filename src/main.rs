@@ -1,22 +1,7 @@
 use std::env;
-use std::fs;
+use std::process;
 
-struct Config {
-    query: String,
-    file_path: String,
-}
-
-impl Config {
-    fn new(args: &Vec<String>) -> Config {
-        let query = args[1].clone();
-        let file_path = args[2].clone();
-
-        Config {
-            query: query,
-            file_path: file_path,
-        }
-    }
-}
+use minigrep::{self, Config};
 
 fn main() {
     // args(): 回傳一個 iterator，裡面包含著我們傳的命令列參數
@@ -25,9 +10,16 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     // dbg!(args);
 
-    let config = Config::new(&args);
+    // unwrap_or_else: 讓我們能夠定義一些非 panic! 的處理方法，傳入一個函式(F)作為 unwrap_or_else 的參數
+    // 如果 Result 的結果是 Err(err)，就會把 err 作為參數傳入 F 當中執行
+    // 下面使用匿名函數作為參數傳入 unwrap_or_else 當中
+    let config = Config::build(&args).unwrap_or_else(|err|{
+        eprintln!("解析引數時發生錯誤：{}", err); // 將錯誤訊息用標準錯誤輸出
+        process::exit(1);
+    });
 
-    let content = fs::read_to_string(config.file_path).expect("檔案讀取錯誤");
-
-    println!("Content:\n {}", content);
+    if let Err(err) = minigrep::run(config){
+        eprintln!("應用程式錯誤: {}", err);
+        process::exit(1);
+    }
 }
